@@ -49,17 +49,58 @@ export const signup = async (req, res) => {
       profilePic: newUser.profilePic,
     });
   } catch (error) {
-    console.log("Error while signup", error.message);
+    console.log("Error while signup authController@signup", error.message);
     res.status(500).json({
       error: "Internal Server Error",
     });
   }
 };
 
-export const login = (req, res) => {
-  res.send("login users");
+export const login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "Invalid username or password",
+      });
+    }
+    const isPasswordCorrect = await bcryptjs.compare(
+      password,
+      user.password || ""
+    );
+
+    if (!user || !isPasswordCorrect) {
+      return res.status(400).json({
+        error: "Invalid username or password",
+      });
+    }
+
+    generateTokenAndSetCookie(user._id, res);
+
+    return res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      username: user.username,
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    console.log("Error while login authController@login", error.message);
+    res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
 };
 
 export const logout = (req, res) => {
-  res.send("logout users");
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log("Error while login authController@logout", error.message);
+    res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
 };
